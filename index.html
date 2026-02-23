@@ -219,7 +219,8 @@
             const entriesData = getEntries();
             
             // Build full list with initial entry - calculate days automatically
-            let allDates = [{ date: initialDate, debt: initialDebt, payment: 0, rate: initialRate, days: 0 }];
+            // First entry has debt = 0 (initial debt is set separately as principal)
+            let allDates = [{ date: initialDate, debt: 0, payment: 0, rate: initialRate, days: 0 }];
             let prevDate = initialDate;
             
             entriesData.forEach(e => {
