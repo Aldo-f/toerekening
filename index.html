@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toerekening Calculator</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 { color: #333; }
+        .container { display: flex; gap: 20px; flex-wrap: wrap; }
+        .input-panel { flex: 1; min-width: 300px; }
+        .output-panel { flex: 2; min-width: 400px; }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { 
+            width: 100%; 
+            padding: 8px; 
+            margin-bottom: 10px; 
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover { background: #0056b3; }
+        button.secondary { background: #6c757d; }
+        button.secondary:hover { background: #545b62; }
+        button.danger { background: #dc3545; }
+        button.danger:hover { background: #c82333; }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            font-size: 14px;
+        }
+        th, td { 
+            padding: 8px; 
+            text-align: right; 
+            border-bottom: 1px solid #ddd;
+        }
+        th { background: #f8f9fa; text-align: center; }
+        td:first-child, th:first-child { text-align: left; }
+        .entry-row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+        .entry-row input { margin: 0; flex: 1; min-width: 100px; }
+        .entry-row .days-input { width: 60px; flex: none; }
+        .entry-row .rate-input { width: 60px; flex: none; }
+        .share-url {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 4px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .total-row { font-weight: bold; background: #f8f9fa; }
+        .error { color: #dc3545; margin-top: 10px; }
+        .info { color: #666; font-size: 14px; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Toerekening Calculator</h1>
+    <p class="info">Berekening volgens art. 5.210 BW (betalingen worden eerst op interest aangerekend)</p>
+    
+    <div class="container">
+        <div class="input-panel">
+            <div class="card">
+                <h3>Start</h3>
+                <label>Initiële schuld (€)</label>
+                <input type="number" id="initialDebt" step="0.01" value="3000">
+                
+                <label>Rentevoet (%)</label>
+                <input type="number" id="initialRate" step="0.01" value="2">
+                
+                <label>Startdatum</label>
+                <input type="text" id="initialDate" placeholder="dd/mm/yyyy" value="22/05/2016">
+            </div>
+            
+            <div class="card">
+                <h3>Betalingen</h3>
+                <div id="entries"></div>
+                <button onclick="addEntry()">+ Voeg betaling toe</button>
+            </div>
+            
+            <div class="card">
+                <button onclick="calculate()">Bereken</button>
+                <button class="secondary" onclick="resetForm()">Reset</button>
+                <button class="secondary" onclick="copyUrl()">Kopieer URL</button>
+            </div>
+            
+            <div class="card">
+                <h3>Deel deze berekening</h3>
+                <div class="share-url" id="shareUrl"></div>
+            </div>
+        </div>
+        
+        <div class="output-panel">
+            <div class="card">
+                <h3>Resultaat</h3>
+                <table id="resultTable">
+                    <thead>
+                        <tr>
+                            <th>Datum</th>
+                            <th>Dagen</th>
+                            <th>Rentevoet</th>
+                            <th>Hoofdsom</th>
+                            <th>Interest</th>
+                            <th>Toerekening</th>
+                            <th>Saldo</th>
+                            <th>Totaal</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let entries = [];
+        
+        function parseDate(str) {
+            const parts = str.split('/');
+            if (parts.length !== 3) return null;
+            return new Date(parts[2], parts[1] - 1, parts[0]);
+        }
+        
+        function formatDate(date) {
+            const d = String(date.getDate()).padStart(2, '0');
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const y = date.getFullYear();
+            return `${d}/${m}/${y}`;
+        }
+        
+        function calcDays(d1, d2) {
+            return Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+        }
+        
+        function calcInterest(principal, rate, days) {
+            return Math.round(principal * rate / 100 * days / 365 * 100) / 100;
+        }
+        
+        function addEntry(date = '', days = '', payment = '', rate = '') {
+            const div = document.createElement('div');
+            div.className = 'entry-row';
+            div.innerHTML = `
+                <input type="text" class="date-input" placeholder="dd/mm/yyyy" value="${date}">
+                <input type="number" class="days-input" placeholder="Dagen" value="${days}">
+                <input type="number" class="payment-input" step="0.01" placeholder="Betaling" value="${payment}">
+                <input type="number" class="rate-input" step="0.01" placeholder="%" value="${rate}">
+                <button class="danger" onclick="this.parentElement.remove(); updateShareUrl();">×</button>
+            `;
+            document.getElementById('entries').appendChild(div);
+        }
+        
+        function getEntries() {
+            const rows = document.querySelectorAll('#entries .entry-row');
+            const result = [];
+            rows.forEach(row => {
+                const date = row.querySelector('.date-input').value;
+                const days = parseInt(row.querySelector('.days-input').value) || 0;
+                const payment = parseFloat(row.querySelector('.payment-input').value) || 0;
+                const rate = parseFloat(row.querySelector('.rate-input').value) || 0;
+                if (date) result.push({ date, days, payment, rate });
+            });
+            return result;
+        }
+        
+        function calculate() {
+            const initialDebt = parseFloat(document.getElementById('initialDebt').value) || 0;
+            const initialRate = parseFloat(document.getElementById('initialRate').value) || 0;
+            const initialDateStr = document.getElementById('initialDate').value;
+            const initialDate = parseDate(initialDateStr);
+            
+            if (!initialDate) {
+                alert('Ongeldige startdatum');
+                return;
+            }
+            
+            const entriesData = getEntries();
+            if (entriesData.length === 0) {
+                alert('Voeg ten minste één betaling toe');
+                return;
+            }
+            
+            // Build full list with initial entry
+            let allDates = [{ date: initialDate, debt: initialDebt, payment: 0, rate: initialRate, days: 0 }];
+            let prevDate = initialDate;
+            
+            entriesData.forEach(e => {
+                const d = parseDate(e.date);
+                const days = calcDays(prevDate, d);
+                allDates.push({ date: d, debt: 0, payment: e.payment, rate: e.rate, days });
+                prevDate = d;
+            });
+            
+            // Calculate toerekening
+            let principal = initialDebt;
+            let toerekening = 0;
+            const results = [];
+            
+            allDates.forEach((entry, i) => {
+                const interest = calcInterest(principal, entry.rate, entry.days);
+                toerekening += interest;
+                
+                if (entry.payment < 0) {
+                    toerekening -= Math.abs(entry.payment);
+                    if (toerekening < 0) {
+                        principal += toerekening;
+                        toerekening = 0;
+                    }
+                }
+                
+                const saldo = principal + toerekening;
+                const totaal = saldo + interest;
+                
+                results.push({
+                    date: formatDate(entry.date),
+                    days: entry.days,
+                    rate: entry.rate,
+                    principal: Math.round(principal * 100) / 100,
+                    interest: Math.round(interest * 100) / 100,
+                    toerekening: Math.round(toerekening * 100) / 100,
+                    saldo: Math.round(saldo * 100) / 100,
+                    totaal: Math.round(totaal * 100) / 100
+                });
+            });
+            
+            // Render table
+            const tbody = document.getElementById('resultBody');
+            tbody.innerHTML = results.map(r => `
+                <tr>
+                    <td>${r.date}</td>
+                    <td>${r.days}</td>
+                    <td>${r.rate}%</td>
+                    <td>€${r.principal.toFixed(2)}</td>
+                    <td>€${r.interest.toFixed(2)}</td>
+                    <td>€${r.toerekening.toFixed(2)}</td>
+                    <td>€${r.saldo.toFixed(2)}</td>
+                    <td>€${r.totaal.toFixed(2)}</td>
+                </tr>
+            `).join('');
+            
+            updateShareUrl();
+        }
+        
+        function updateShareUrl() {
+            const initialDebt = document.getElementById('initialDebt').value;
+            const initialRate = document.getElementById('initialRate').value;
+            const initialDate = document.getElementById('initialDate').value;
+            const entriesData = getEntries();
+            
+            const params = new URLSearchParams();
+            params.set('d', initialDebt);
+            params.set('r', initialRate);
+            params.set('s', initialDate);
+            
+            if (entriesData.length > 0) {
+                const entriesStr = entriesData.map(e => 
+                    `${e.date},${e.days},${e.payment},${e.rate}`
+                ).join('|');
+                params.set('e', entriesStr);
+            }
+            
+            const url = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+            document.getElementById('shareUrl').textContent = url;
+        }
+        
+        function loadFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            
+            if (params.has('d')) {
+                document.getElementById('initialDebt').value = params.get('d');
+            }
+            if (params.has('r')) {
+                document.getElementById('initialRate').value = params.get('r');
+            }
+            if (params.has('s')) {
+                document.getElementById('initialDate').value = params.get('s');
+            }
+            
+            if (params.has('e')) {
+                document.getElementById('entries').innerHTML = '';
+                const entriesStr = params.get('e').split('|');
+                entriesStr.forEach(entry => {
+                    const [date, days, payment, rate] = entry.split(',');
+                    addEntry(date, days, payment, rate);
+                });
+            }
+            
+            if (params.has('d') || params.has('e')) {
+                calculate();
+            }
+        }
+        
+        function copyUrl() {
+            const url = document.getElementById('shareUrl').textContent;
+            navigator.clipboard.writeText(url).then(() => {
+                alert('URL gekopieerd naar klembord!');
+            });
+        }
+        
+        function resetForm() {
+            document.getElementById('initialDebt').value = '3000';
+            document.getElementById('initialRate').value = '2';
+            document.getElementById('initialDate').value = '22/05/2016';
+            document.getElementById('entries').innerHTML = '';
+            document.getElementById('resultBody').innerHTML = '';
+            history.replaceState({}, '', window.location.pathname);
+            updateShareUrl();
+        }
+        
+        // Initialize with example entries
+        document.addEventListener('DOMContentLoaded', () => {
+            loadFromUrl();
+        });
+    </script>
+</body>
+</html>
