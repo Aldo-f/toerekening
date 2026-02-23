@@ -148,8 +148,6 @@
     </div>
 
     <script>
-        let entries = [];
-        
         function parseDate(str) {
             const parts = str.split('/');
             if (parts.length !== 3) return null;
@@ -167,8 +165,13 @@
             return Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
         }
         
+        // Round to 2 decimal places
+        function round2(num) {
+            return Math.round(num * 100) / 100;
+        }
+        
         function calcInterest(principal, rate, days) {
-            return Math.round(principal * rate / 100 * days / 365 * 100) / 100;
+            return round2(principal * rate / 100 * days / 365);
         }
         
         function formatEuro(amount) {
@@ -228,30 +231,46 @@
                 }
             });
             
+            // Debug: log the parsed entries
+            console.log('All dates:', allDates);
+            
             // Calculate toerekening
+            // According to art. 5.210 BW: payments are first allocated to interest
             let principal = initialDebt;
             let toerekening = 0;
             const results = [];
             
-            allDates.forEach((entry, i) => {
-                const interest = calcInterest(principal, entry.rate, entry.days);
-                toerekening += interest;
+            for (let i = 0; i < allDates.length; i++) {
+                const entry = allDates[i];
                 
+                // Calculate interest for this period
+                const interest = calcInterest(principal, entry.rate, entry.days);
+                
+                // Add interest to toerekening
+                toerekening = round2(toerekening + interest);
+                
+                // Apply payment (first to interest/toerekening, then principal)
                 if (entry.payment < 0) {
-                    toerekening -= Math.abs(entry.payment);
+                    const paymentAbs = Math.abs(entry.payment);
+                    toerekening = round2(toerekening - paymentAbs);
+                    
+                    // If payment exceeds toerekening, the excess goes to principal
                     if (toerekening < 0) {
-                        principal += toerekening;
+                        // The excess payment reduces principal
+                        principal = round2(principal + toerekening);
                         toerekening = 0;
                     }
                 }
                 
-                // Add any new debt
+                // Add any new debt (this happens AFTER interest calculation)
                 if (entry.debt > 0) {
-                    principal += entry.debt;
+                    principal = round2(principal + entry.debt);
                 }
                 
-                const saldo = principal + toerekening;
-                const totaal = saldo + interest;
+                const saldo = round2(principal + toerekening);
+                const totaal = round2(saldo + interest);
+                
+                console.log(`Row ${i+1}: principal=${principal}, interest=${interest}, toerekening=${toerekening}, saldo=${saldo}, totaal=${totaal}`);
                 
                 results.push({
                     date: formatDate(entry.date),
@@ -259,13 +278,13 @@
                     debt: entry.debt,
                     payment: entry.payment,
                     rate: entry.rate,
-                    principal: Math.round(principal * 100) / 100,
-                    interest: Math.round(interest * 100) / 100,
-                    toerekening: Math.round(toerekening * 100) / 100,
-                    saldo: Math.round(saldo * 100) / 100,
-                    totaal: Math.round(totaal * 100) / 100
+                    principal: principal,
+                    interest: interest,
+                    toerekening: toerekening,
+                    saldo: saldo,
+                    totaal: totaal
                 });
-            });
+            }
             
             // Render table
             const tbody = document.getElementById('resultBody');
