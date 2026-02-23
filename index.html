@@ -372,9 +372,42 @@
             updateShareUrl();
         }
         
+        function loadDefaultExample() {
+            document.getElementById('initialDebt').value = '3000';
+            document.getElementById('initialRate').value = '2';
+            document.getElementById('initialDate').value = '22/05/2016';
+            document.getElementById('entries').innerHTML = '';
+            
+            const exampleEntries = [
+                ['22/05/2018', '0', '0', '2'],
+                ['12/03/2021', '0', '-100', '10'],
+                ['18/03/2021', '0', '-100', '10'],
+                ['29/04/2021', '0', '-300', '10'],
+                ['04/08/2021', '0', '-100', '10'],
+                ['26/01/2022', '0', '-2.04', '10'],
+                ['04/04/2022', '0', '-100', '10'],
+                ['13/04/2022', '0', '-100', '10'],
+                ['02/04/2024', '0', '-500', '10'],
+                ['10/09/2024', '0', '-850', '10'],
+                ['29/11/2024', '0', '-250', '10'],
+                ['02/12/2024', '0', '-1010', '10'],
+                ['17/12/2025', '0', '-800', '10'],
+                ['24/02/2026', '0', '0', '10'],
+            ];
+            
+            exampleEntries.forEach(e => addEntry(e[0], e[1], e[2], e[3]));
+            calculate();
+        }
+        
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
-            loadFromUrl();
+            const params = new URLSearchParams(window.location.search);
+            if (params.has('d') || params.has('e')) {
+                loadFromUrl();
+            } else {
+                // Load default example
+                loadDefaultExample();
+            }
         });
     </script>
 </body>
