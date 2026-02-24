@@ -25,12 +25,16 @@
             margin-bottom: 20px;
         }
         label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input { 
+        input[type="number"], input[type="text"] { 
             width: 100%; 
             padding: 8px; 
             margin-bottom: 10px; 
             border: 1px solid #ddd;
             border-radius: 4px;
+        }
+        input[type="checkbox"] {
+            width: auto;
+            margin-right: 10px;
         }
         button {
             background: #007bff;
@@ -102,6 +106,14 @@
                 </div>
                 <label>Startdatum</label>
                 <input type="text" id="initialDate" placeholder="dd/mm/yyyy" value="22/05/2016">
+                
+                <div style="margin-top: 15px; padding: 10px; background: #e9ecef; border-radius: 4px;">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" id="kapitalisatie" style="width: auto; margin-right: 10px;">
+                        <span>Kapitalisatie vanaf 10% rente</span>
+                    </label>
+                    <small style="color: #666;">Interest wordt vanaf 10% bij de hoofdsom gevoegd (anatocisme toegestaan)</small>
+                </div>
             </div>
             
             <div class="card">
@@ -237,6 +249,7 @@
             
             // Calculate toerekening
             // According to art. 5.210 BW: payments are first allocated to interest
+            const kapitalisatie = document.getElementById('kapitalisatie').checked;
             let principal = initialDebt;
             let toerekening = 0;
             const results = [];
@@ -247,8 +260,15 @@
                 // Calculate interest for this period
                 const interest = calcInterest(principal, entry.rate, entry.days);
                 
-                // Add interest to toerekening
-                toerekening = round2(toerekening + interest);
+                // Kapitalisatie: if rate >= 10%, add interest to principal
+                // Otherwise, add to toerekening (current behavior)
+                if (kapitalisatie && entry.rate >= 10) {
+                    principal = round2(principal + interest);
+                    toerekening = round2(toerekening + interest);
+                } else {
+                    // Add interest to toerekening
+                    toerekening = round2(toerekening + interest);
+                }
                 
                 // Apply payment (first to interest/toerekening, then principal)
                 if (entry.payment < 0) {
@@ -311,12 +331,16 @@
             const initialDebt = document.getElementById('initialDebt').value;
             const initialRate = document.getElementById('initialRate').value;
             const initialDate = document.getElementById('initialDate').value;
+            const kapitalisatie = document.getElementById('kapitalisatie').checked;
             const entriesData = getEntries();
             
             const params = new URLSearchParams();
             params.set('d', initialDebt);
             params.set('r', initialRate);
             params.set('s', initialDate);
+            if (kapitalisatie) {
+                params.set('k', '1');
+            }
             
             if (entriesData.length > 0) {
                 const entriesStr = entriesData.map(e => 
@@ -340,6 +364,9 @@
             }
             if (params.has('s')) {
                 document.getElementById('initialDate').value = params.get('s');
+            }
+            if (params.has('k')) {
+                document.getElementById('kapitalisatie').checked = params.get('k') === '1';
             }
             
             if (params.has('e')) {
@@ -367,6 +394,7 @@
             document.getElementById('initialDebt').value = '3000';
             document.getElementById('initialRate').value = '2';
             document.getElementById('initialDate').value = '22/05/2016';
+            document.getElementById('kapitalisatie').checked = false;
             document.getElementById('entries').innerHTML = '';
             document.getElementById('resultBody').innerHTML = '';
             history.replaceState({}, '', window.location.pathname);
@@ -409,6 +437,9 @@
                 // Load default example
                 loadDefaultExample();
             }
+            
+            // Recalculate when kapitalisatie is toggled
+            document.getElementById('kapitalisatie').addEventListener('change', calculate);
         });
     </script>
 </body>
