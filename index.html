@@ -58,8 +58,8 @@
                     <!-- Kapitalisatie Toggle -->
                     <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
                         <label class="flex items-start cursor-pointer">
-                            <input type="checkbox" id="kapitalisatie" class="mt-1 w-5 h-5 text-blue-600 rounded focus:ring-blue-500">
-                            <div class="ml-3">
+                            <input type="checkbox" id="kapitalisatie" class="mt-1 w-5 h-5 text-blue-600 rounded focus:ring-blue-500" onchange="toggleKapitalisatieDate()">
+                            <div class="ml-3 flex-1">
                                 <span class="block text-sm font-semibold text-amber-800">Kapitalisatie (rente-op-rente)</span>
                                 <p class="text-xs text-amber-700 mt-1">
                                     ⚠️ Let op: In België is anatocisme verboden (art. 5.207 BW). 
@@ -67,6 +67,11 @@
                                 </p>
                             </div>
                         </label>
+                        <div id="kapitalisatieDateContainer" class="mt-3 hidden">
+                            <label class="block text-xs font-medium text-amber-800 mb-1">Rente-op-rente vanaf datum</label>
+                            <input type="date" id="kapitalisatieDate" 
+                                class="w-full px-3 py-2 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-sm">
+                        </div>
                     </div>
                 </div>
 
@@ -89,12 +94,8 @@
                 <!-- Acties Card -->
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                     <div class="flex flex-wrap gap-2">
-                        <button onclick="calculate()" 
-                            class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium">
-                            Bereken
-                        </button>
                         <button onclick="resetForm()" 
-                            class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-medium">
+                            class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-medium">
                             Reset
                         </button>
                         <button onclick="copyUrl()" 
@@ -128,6 +129,15 @@
                     </h2>
                     <div class="relative h-64">
                         <canvas id="resultChart"></canvas>
+                        <div id="chartLoading" class="absolute inset-0 bg-white/80 flex items-center justify-center hidden">
+                            <div class="flex items-center gap-2 text-blue-600">
+                                <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span class="font-medium">Berekenen...</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -138,7 +148,7 @@
                         Resultaat
                     </h2>
                     
-                    <div class="overflow-x-auto">
+                    <div class="overflow-x-auto relative min-h-[200px]">
                         <table id="resultTable" class="w-full compact-table">
                             <thead>
                                 <tr class="bg-gray-50">
@@ -157,11 +167,20 @@
                             <tbody id="resultBody" class="divide-y divide-gray-100">
                             </tbody>
                         </table>
+                        <div id="tableLoading" class="absolute inset-0 bg-white/80 flex items-center justify-center hidden">
+                            <div class="flex items-center gap-2 text-blue-600">
+                                <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span class="font-medium">Berekenen...</span>
+                            </div>
+                        </div>
                     </div>
                     
                     <div id="emptyState" class="text-center py-12 text-gray-400">
                         <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                        <p>Voeg betalingen toe en klik op "Bereken"</p>
+                        <p>Voeg betalingen toe</p>
                     </div>
                 </div>
 
@@ -187,10 +206,49 @@
     </div>
 
     <script>
+        let debounceTimer = null;
+
+        function debounce(func, delay = 300) {
+            return function(...args) {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    showLoading();
+                    setTimeout(() => func.apply(this, args), 50);
+                }, delay);
+            };
+        }
+
+        function hideLoading() {
+            document.getElementById('chartLoading').classList.add('hidden');
+            document.getElementById('tableLoading').classList.add('hidden');
+        }
+
+        function triggerCalculate() {
+            debounce(calculate)();
+        }
+
+        function toggleKapitalisatieDate() {
+            const checkbox = document.getElementById('kapitalisatie');
+            const dateContainer = document.getElementById('kapitalisatieDateContainer');
+            if (checkbox.checked) {
+                dateContainer.classList.remove('hidden');
+            } else {
+                dateContainer.classList.add('hidden');
+            }
+            triggerCalculate();
+        }
+
         function parseDate(str) {
             const parts = str.split('/');
             if (parts.length !== 3) return null;
             return new Date(parts[2], parts[1] - 1, parts[0]);
+        }
+
+        function parseInputDate(str) {
+            if (!str) return null;
+            const parts = str.split('-');
+            if (parts.length !== 3) return null;
+            return new Date(parts[0], parts[1] - 1, parts[2]);
         }
         
         function formatDate(date) {
@@ -198,6 +256,13 @@
             const m = String(date.getMonth() + 1).padStart(2, '0');
             const y = date.getFullYear();
             return `${d}/${m}/${y}`;
+        }
+
+        function formatDateForInput(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
         }
         
         function calcDays(d1, d2) {
@@ -225,9 +290,14 @@
                 <input type="number" class="debt-input col-span-1 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500" placeholder="Schuld" value="${debt}">
                 <input type="number" class="payment-input col-span-1 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500" placeholder="Betaling" value="${payment}">
                 <input type="number" class="rate-input col-span-1 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500" placeholder="%" value="${rate}">
-                <button onclick="this.parentElement.remove(); updateShareUrl();" class="px-2 py-1 bg-red-100 text-red-600 rounded hover:bg-red-200 transition text-sm">×</button>
+                <button onclick="this.parentElement.remove(); updateShareUrl(); triggerCalculate();" class="px-2 py-1 bg-red-100 text-red-600 rounded hover:bg-red-200 transition text-sm">×</button>
             `;
             document.getElementById('entries').appendChild(div);
+            
+            const inputs = div.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.addEventListener('input', triggerCalculate);
+            });
         }
         
         function getEntries() {
@@ -250,8 +320,15 @@
             const initialDate = parseDate(initialDateStr);
             
             if (!initialDate) {
-                alert('Ongeldige startdatum');
+                hideLoading();
                 return;
+            }
+
+            const kapitalisatie = document.getElementById('kapitalisatie').checked;
+            const kapitalisatieDateInput = document.getElementById('kapitalisatieDate').value;
+            let kapitalisatieDate = null;
+            if (kapitalisatie && kapitalisatieDateInput) {
+                kapitalisatieDate = parseInputDate(kapitalisatieDateInput);
             }
             
             const entriesData = getEntries();
@@ -349,7 +426,6 @@
                 }
             }
             
-            const kapitalisatie = document.getElementById('kapitalisatie').checked;
             let principal = initialDebt;
             let toerekening = 0;
             const results = [];
@@ -358,7 +434,8 @@
                 const entry = allDates[i];
                 const interest = calcInterest(principal, entry.rate, entry.days);
                 
-                if (kapitalisatie && entry.rate >= 10) {
+                const applyKapitalisatie = kapitalisatie && kapitalisatieDate && entry.date >= kapitalisatieDate;
+                if (applyKapitalisatie) {
                     principal = round2(principal + interest);
                 }
                 
@@ -427,6 +504,7 @@
             }
             
             updateShareUrl();
+            hideLoading();
         }
         
         function updateShareUrl() {
@@ -434,13 +512,17 @@
             const initialRate = document.getElementById('initialRate').value;
             const initialDate = document.getElementById('initialDate').value;
             const kapitalisatie = document.getElementById('kapitalisatie').checked;
+            const kapitalisatieDateInput = document.getElementById('kapitalisatieDate').value;
             const entriesData = getEntries();
             
             const params = new URLSearchParams();
             params.set('d', initialDebt);
             params.set('r', initialRate);
             params.set('s', initialDate);
-            if (kapitalisatie) params.set('k', '1');
+            if (kapitalisatie && kapitalisatieDateInput) {
+                const parts = kapitalisatieDateInput.split('-');
+                params.set('k', `${parts[2]}/${parts[1]}/${parts[0]}`);
+            }
             
             if (entriesData.length > 0) {
                 const entriesStr = entriesData.map(e => `${e.date},${e.debt},${e.payment},${e.rate}`).join('|');
@@ -449,6 +531,7 @@
             
             const url = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
             document.getElementById('shareUrl').textContent = url;
+            window.history.replaceState({}, '', url);
         }
         
         function loadFromUrl() {
@@ -457,7 +540,19 @@
             if (params.has('d')) document.getElementById('initialDebt').value = params.get('d');
             if (params.has('r')) document.getElementById('initialRate').value = params.get('r');
             if (params.has('s')) document.getElementById('initialDate').value = params.get('s');
-            if (params.has('k')) document.getElementById('kapitalisatie').checked = params.get('k') === '1';
+            
+            if (params.has('k')) {
+                let kValue = params.get('k');
+                if (kValue === '1') {
+                    kValue = '22/05/2018';
+                }
+                document.getElementById('kapitalisatie').checked = true;
+                toggleKapitalisatieDate();
+                const parsed = parseDate(kValue);
+                if (parsed) {
+                    document.getElementById('kapitalisatieDate').value = formatDateForInput(parsed);
+                }
+            }
             
             if (params.has('e')) {
                 document.getElementById('entries').innerHTML = '';
@@ -512,6 +607,8 @@
             document.getElementById('initialRate').value = '2';
             document.getElementById('initialDate').value = '22/05/2016';
             document.getElementById('kapitalisatie').checked = false;
+            document.getElementById('kapitalisatieDateContainer').classList.add('hidden');
+            document.getElementById('kapitalisatieDate').value = '';
             document.getElementById('entries').innerHTML = '';
             document.getElementById('resultBody').innerHTML = '';
             document.getElementById('emptyState').classList.remove('hidden');
@@ -555,9 +652,16 @@
             }
             
             document.getElementById('kapitalisatie').addEventListener('change', function() {
-                console.log('Kapitalisatie changed:', this.checked);
-                calculate();
+                toggleKapitalisatieDate();
             });
+
+            document.getElementById('kapitalisatieDate').addEventListener('change', function() {
+                triggerCalculate();
+            });
+
+            document.getElementById('initialDebt').addEventListener('input', triggerCalculate);
+            document.getElementById('initialRate').addEventListener('input', triggerCalculate);
+            document.getElementById('initialDate').addEventListener('input', triggerCalculate);
         });
     </script>
 </body>
