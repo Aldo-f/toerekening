@@ -207,24 +207,26 @@
 
     <script>
         let debounceTimer = null;
+        let isCalculating = false;
 
-        function debounce(func, delay = 300) {
-            return function(...args) {
+        function triggerCalculate() {
+            if (isCalculating) {
                 clearTimeout(debounceTimer);
-                debounceTimer = setTimeout(() => {
-                    showLoading();
-                    setTimeout(() => func.apply(this, args), 50);
-                }, delay);
-            };
+            }
+            
+            showLoading();
+            
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                isCalculating = true;
+                calculate();
+                isCalculating = false;
+            }, 300);
         }
 
         function hideLoading() {
             document.getElementById('chartLoading').classList.add('hidden');
             document.getElementById('tableLoading').classList.add('hidden');
-        }
-
-        function triggerCalculate() {
-            debounce(calculate)();
         }
 
         function toggleKapitalisatieDate() {
@@ -318,6 +320,9 @@
             const initialRate = parseFloat(document.getElementById('initialRate').value) || 0;
             const initialDateStr = document.getElementById('initialDate').value;
             const initialDate = parseDate(initialDateStr);
+            if (initialDate) {
+                initialDate.setHours(0, 0, 0, 0);
+            }
             
             if (!initialDate) {
                 hideLoading();
@@ -329,6 +334,9 @@
             let kapitalisatieDate = null;
             if (kapitalisatie && kapitalisatieDateInput) {
                 kapitalisatieDate = parseInputDate(kapitalisatieDateInput);
+                if (kapitalisatieDate) {
+                    kapitalisatieDate.setHours(0, 0, 0, 0);
+                }
             }
             
             const entriesData = getEntries();
@@ -339,6 +347,7 @@
             entriesData.forEach(e => {
                 const d = parseDate(e.date);
                 if (d) {
+                    d.setHours(0, 0, 0, 0);
                     const days = calcDays(prevDate, d);
                     allDates.push({ date: d, debt: e.debt, payment: e.payment, rate: e.rate, days });
                     prevDate = d;
@@ -544,7 +553,7 @@
             if (params.has('k')) {
                 let kValue = params.get('k');
                 if (kValue === '1') {
-                    kValue = '22/05/2018';
+                    kValue = '22/05/2016';
                 }
                 document.getElementById('kapitalisatie').checked = true;
                 toggleKapitalisatieDate();
@@ -656,6 +665,12 @@
             });
 
             document.getElementById('kapitalisatieDate').addEventListener('change', function() {
+                updateShareUrl();
+                triggerCalculate();
+            });
+            
+            document.getElementById('kapitalisatieDate').addEventListener('input', function() {
+                updateShareUrl();
                 triggerCalculate();
             });
 
