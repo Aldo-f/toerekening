@@ -126,6 +126,7 @@
                 <button onclick="calculate()">Bereken</button>
                 <button class="secondary" onclick="resetForm()">Reset</button>
                 <button class="secondary" onclick="copyUrl()">Kopieer URL</button>
+                <button class="secondary" onclick="exportExcel()">Exporteer naar Excel</button>
             </div>
             
             <div class="card">
@@ -388,6 +389,35 @@
             navigator.clipboard.writeText(url).then(() => {
                 alert('URL gekopieerd naar klembord!');
             });
+        }
+        
+        function exportExcel() {
+            const rows = document.querySelectorAll('#resultBody tr');
+            if (rows.length === 0) {
+                alert('Voer eerst een berekening uit');
+                return;
+            }
+            
+            // Build CSV content
+            let csv = 'Datum;Dagen;Schuld;Afbetaling;Rentevoet;Hoofdsom;Interest;Toerekening;Saldo;Totaal\n';
+            
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                let rowData = [];
+                cells.forEach(cell => {
+                    let text = cell.textContent.replace('€', '').trim();
+                    if (text === '-') text = '';
+                    rowData.push(text);
+                });
+                csv += rowData.join(';') + '\n';
+            });
+            
+            // Download CSV
+            const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'toerekening.csv';
+            link.click();
         }
         
         function resetForm() {
