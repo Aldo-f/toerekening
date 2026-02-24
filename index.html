@@ -110,9 +110,13 @@
                 <div style="margin-top: 15px; padding: 10px; background: #e9ecef; border-radius: 4px;">
                     <label style="display: flex; align-items: center; cursor: pointer;">
                         <input type="checkbox" id="kapitalisatie" style="width: auto; margin-right: 10px;">
-                        <span>Kapitalisatie vanaf 10% rente</span>
+                        <span><strong>Kapitalisatie (rente-op-rente) vanaf 10%</strong></span>
                     </label>
-                    <small style="color: #666;">Interest wordt vanaf 10% bij de hoofdsom gevoegd (anatocisme toegestaan)</small>
+                    <small style="color: #666; display: block; margin-top: 5px;">
+                        ⚠️ <strong>Let op:</strong> In België is anatocisme (rente-op-rente) verboden volgens art. 5.207 BW (oud art. 1154 BW), 
+                        tenzij expliciet overeengekomen in een contractuele clausule of via een gerechtelijke aanmaning. 
+                        Zonder deze expliciete toestemming is kapitalisatie <strong>niet van toepassing</strong>.
+                    </small>
                 </div>
             </div>
             
@@ -472,5 +476,20 @@
             document.getElementById('kapitalisatie').addEventListener('change', calculate);
         });
     </script>
+    
+    <div style="margin-top: 40px; padding: 20px; background: #f8f9fa; border-radius: 8px; font-size: 12px; color: #666;">
+        <h4 style="margin-top: 0;">📚 Bronnen & Juridische Context</h4>
+        <ul style="padding-left: 20px;">
+            <li><strong>Art. 5.207 BW (nieuw)</strong> / <strong>Art. 1154 BW (oud)</strong>: Anatocisme (rente-op-rente) - 
+                <a href="https://www.elfri.be/anatocisme" target="_blank" style="color: #007bff;">https://www.elfri.be/anatocisme</a></li>
+            <li><strong>Art. 5.210 BW (nieuw)</strong> / <strong>Art. 1254 BW (oud)</strong>: Toerekening van betalingen - betalingen worden eerst op interest aangerekend</li>
+            <li><strong>DaproWeb Toerekening</strong>: <a href="https://daproweb.be/nl/toerekening" target="_blank" style="color: #007bff;">https://daproweb.be/nl/toerekening</a></li>
+        </ul>
+        <p style="margin-bottom: 0;">
+            <strong>Belangrijk:</strong> In België is kapitalisatie van rente enkel toegestaan mits:
+            (1) een expliciete contractuele clausule, OF (2) een gerechtelijke aanmaning.
+            Zonder één van deze is de enkelvoudige rente van toepassing.
+        </p>
+    </div>
 </body>
 </html>
