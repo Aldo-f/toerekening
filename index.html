@@ -5,11 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Toerekening Calculator</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
         .table-row-animate { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        /* Make table cells smaller to fit */
+        .compact-table td, .compact-table th { padding: 0.5rem 0.25rem; font-size: 0.75rem; }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -115,27 +118,40 @@
             </div>
 
             <!-- Result Panel -->
-            <div class="lg:col-span-8">
+            <div class="lg:col-span-8 space-y-6">
+                
+                <!-- Chart Card -->
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                     <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                        <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                        <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
+                        Grafiek
+                    </h2>
+                    <div class="relative h-64">
+                        <canvas id="resultChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Table Card -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
                         Resultaat
                     </h2>
                     
                     <div class="overflow-x-auto">
-                        <table id="resultTable" class="w-full">
+                        <table id="resultTable" class="w-full compact-table">
                             <thead>
                                 <tr class="bg-gray-50">
-                                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Datum</th>
-                                    <th class="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Dagen</th>
-                                    <th class="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Schuld</th>
-                                    <th class="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Afbetaling</th>
-                                    <th class="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Rente</th>
-                                    <th class="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Hoofdsom</th>
-                                    <th class="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Interest</th>
-                                    <th class="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Toerekening</th>
-                                    <th class="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Saldo</th>
-                                    <th class="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Totaal</th>
+                                    <th class="px-2 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Datum</th>
+                                    <th class="px-2 py-2 text-right text-xs font-semibold text-gray-600 uppercase">Dagen</th>
+                                    <th class="px-2 py-2 text-right text-xs font-semibold text-gray-600 uppercase">Schuld</th>
+                                    <th class="px-2 py-2 text-right text-xs font-semibold text-gray-600 uppercase">Afbet.</th>
+                                    <th class="px-2 py-2 text-right text-xs font-semibold text-gray-600 uppercase">Rente</th>
+                                    <th class="px-2 py-2 text-right text-xs font-semibold text-gray-600 uppercase">Hoofdsom</th>
+                                    <th class="px-2 py-2 text-right text-xs font-semibold text-blue-600 uppercase">Interest</th>
+                                    <th class="px-2 py-2 text-right text-xs font-semibold text-purple-600 uppercase">Toerek.</th>
+                                    <th class="px-2 py-2 text-right text-xs font-semibold text-gray-600 uppercase">Saldo</th>
+                                    <th class="px-2 py-2 text-right text-xs font-semibold text-gray-900 uppercase">Totaal</th>
                                 </tr>
                             </thead>
                             <tbody id="resultBody" class="divide-y divide-gray-100">
@@ -252,6 +268,81 @@
                 }
             });
             
+            // Chart initialization
+            let chartInstance = null;
+            
+            function updateChart(labels, principalData, toerekeningData, totaalData) {
+                const ctx = document.getElementById('resultChart').getContext('2d');
+                
+                if (chartInstance) {
+                    chartInstance.destroy();
+                }
+                
+                chartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Hoofdsom',
+                                data: principalData,
+                                borderColor: '#374151',
+                                backgroundColor: 'rgba(55, 65, 81, 0.1)',
+                                fill: true,
+                                tension: 0.3
+                            },
+                            {
+                                label: 'Toerekening',
+                                data: toerekeningData,
+                                borderColor: '#9333ea',
+                                backgroundColor: 'rgba(147, 51, 234, 0.1)',
+                                fill: true,
+                                tension: 0.3
+                            },
+                            {
+                                label: 'Totaal',
+                                data: totaalData,
+                                borderColor: '#2563eb',
+                                backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                                fill: false,
+                                tension: 0.3,
+                                borderWidth: 2
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.dataset.label + ': €' + context.parsed.y.toFixed(2);
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return '€' + value;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
             const kapitalisatie = document.getElementById('kapitalisatie').checked;
             let principal = initialDebt;
             let toerekening = 0;
@@ -303,22 +394,30 @@
             if (results.length === 0) {
                 tbody.innerHTML = '';
                 emptyState.classList.remove('hidden');
+                updateChart([], [], [], []);
             } else {
                 emptyState.classList.add('hidden');
                 tbody.innerHTML = results.map(r => `
                     <tr class="hover:bg-gray-50 transition table-row-animate">
-                        <td class="px-3 py-2 text-sm text-gray-900">${r.date}</td>
-                        <td class="px-3 py-2 text-sm text-gray-600 text-right">${r.days}</td>
-                        <td class="px-3 py-2 text-sm text-gray-600 text-right">${r.debt > 0 ? formatEuro(r.debt) : '€ -'}</td>
-                        <td class="px-3 py-2 text-sm text-red-600 text-right">${r.payment < 0 ? formatEuro(r.payment) : '€ -'}</td>
-                        <td class="px-3 py-2 text-sm text-gray-600 text-right">${r.rate}%</td>
-                        <td class="px-3 py-2 text-sm text-gray-900 text-right font-medium">€${r.principal.toFixed(2)}</td>
-                        <td class="px-3 py-2 text-sm text-blue-600 text-right">€${r.interest.toFixed(2)}</td>
-                        <td class="px-3 py-2 text-sm text-purple-600 text-right">€${r.toerekening.toFixed(2)}</td>
-                        <td class="px-3 py-2 text-sm text-gray-700 text-right font-medium">€${r.saldo.toFixed(2)}</td>
-                        <td class="px-3 py-2 text-sm text-gray-900 text-right font-bold">€${r.totaal.toFixed(2)}</td>
+                        <td class="px-2 py-2 text-xs text-gray-900">${r.date}</td>
+                        <td class="px-2 py-2 text-xs text-gray-600 text-right">${r.days}</td>
+                        <td class="px-2 py-2 text-xs text-gray-600 text-right">${r.debt > 0 ? formatEuro(r.debt) : '-'}</td>
+                        <td class="px-2 py-2 text-xs text-red-600 text-right">${r.payment < 0 ? formatEuro(r.payment) : '-'}</td>
+                        <td class="px-2 py-2 text-xs text-gray-600 text-right">${r.rate}%</td>
+                        <td class="px-2 py-2 text-xs text-gray-900 text-right font-medium">€${r.principal.toFixed(2)}</td>
+                        <td class="px-2 py-2 text-xs text-blue-600 text-right">€${r.interest.toFixed(2)}</td>
+                        <td class="px-2 py-2 text-xs text-purple-600 text-right">€${r.toerekening.toFixed(2)}</td>
+                        <td class="px-2 py-2 text-xs text-gray-700 text-right font-medium">€${r.saldo.toFixed(2)}</td>
+                        <td class="px-2 py-2 text-xs text-gray-900 text-right font-bold">€${r.totaal.toFixed(2)}</td>
                     </tr>
                 `).join('');
+                
+                // Update chart
+                const labels = results.map(r => r.date);
+                const principalData = results.map(r => r.principal);
+                const toerekeningData = results.map(r => r.toerekening);
+                const totaalData = results.map(r => r.totaal);
+                updateChart(labels, principalData, toerekeningData, totaalData);
             }
             
             updateShareUrl();
