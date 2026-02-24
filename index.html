@@ -272,13 +272,16 @@
             let chartInstance = null;
             
             function updateChart(labels, principalData, toerekeningData, totaalData) {
-                const ctx = document.getElementById('resultChart').getContext('2d');
+                const ctx = document.getElementById('resultChart');
+                if (!ctx) return;
                 
-                if (chartInstance) {
-                    chartInstance.destroy();
-                }
-                
-                chartInstance = new Chart(ctx, {
+                try {
+                    if (chartInstance) {
+                        chartInstance.destroy();
+                        chartInstance = null;
+                    }
+                    
+                    chartInstance = new Chart(ctx, {
                     type: 'line',
                     data: {
                         labels: labels,
@@ -341,6 +344,9 @@
                         }
                     }
                 });
+                } catch (e) {
+                    console.error('Chart error:', e);
+                }
             }
             
             const kapitalisatie = document.getElementById('kapitalisatie').checked;
@@ -548,7 +554,10 @@
                 loadDefaultExample();
             }
             
-            document.getElementById('kapitalisatie').addEventListener('change', calculate);
+            document.getElementById('kapitalisatie').addEventListener('change', function() {
+                console.log('Kapitalisatie changed:', this.checked);
+                calculate();
+            });
         });
     </script>
 </body>
