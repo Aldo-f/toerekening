@@ -224,6 +224,11 @@
             }, 300);
         }
 
+        function showLoading() {
+            document.getElementById('chartLoading').classList.remove('hidden');
+            document.getElementById('tableLoading').classList.remove('hidden');
+        }
+
         function hideLoading() {
             document.getElementById('chartLoading').classList.add('hidden');
             document.getElementById('tableLoading').classList.add('hidden');
