@@ -555,12 +555,12 @@
                 if (kValue === '1') {
                     kValue = '22/05/2018';
                 }
-                document.getElementById('kapitalisatie').checked = true;
-                toggleKapitalisatieDate();
                 const parsed = parseDate(kValue);
                 if (parsed) {
                     document.getElementById('kapitalisatieDate').value = formatDateForInput(parsed);
                 }
+                document.getElementById('kapitalisatie').checked = true;
+                toggleKapitalisatieDate();
             }
             
             if (params.has('e')) {
